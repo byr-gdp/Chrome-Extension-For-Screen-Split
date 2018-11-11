@@ -1,7 +1,7 @@
 chrome.browserAction.onClicked.addListener(function (tab) {
   const script = `document.write("<HTML><HEAD></HEAD><FRAMESET COLS=\'50%25,*\'><FRAME src='${tab.url}' /><FRAME src='${tab.url}' /></FRAMESET></HTML>")`;
 
-  // TODO: 有的页面如 chrome://extensions 执行无效
+  // Note: 有的页面如 chrome://extensions 执行无效
   chrome.tabs.executeScript({
     code: script,
   });
@@ -9,12 +9,11 @@ chrome.browserAction.onClicked.addListener(function (tab) {
 
 chrome.webRequest.onHeadersReceived.addListener(
   function (details) {
-    for (var i = 0; i < details.responseHeaders.length; ++i) {
-      // 移除响应头的 x-frame-options 以使页面可以展示在 frame 中。
-      if (details.responseHeaders[i].name.toLowerCase() == 'x-frame-options') {
-        details.responseHeaders.splice(i, 1);
-      }
-    }
+    // 移除 csp、x-frame-options 以显示 frame，但在 GitHub 和 StackOverflow 等站点，会判断 top 是否等于 Window，从而 alert 并刷新页面。
+    details.responseHeaders = details.responseHeaders.filter((item) => {
+      return item.name !== 'Content-Security-Policy' && item.name !== 'X-Frame-Options';
+    });
+
     return {
       responseHeaders: details.responseHeaders,
     };
